@@ -43,7 +43,7 @@ function FrameList() {
       console.log(data, "data");
       console.log(status, "nilai status");
       if (data === null) {
-        addFrame();
+        await addFrame();
       } else {
         alert("FRAME SUDAH TERDAFTAR!!");
       }
@@ -52,7 +52,7 @@ function FrameList() {
     }
   };
 
-  function addFrame() {
+  async function addFrame() {
     console.log(baris, "baris atas");
 
     console.log(inputdata, " input data  ");
@@ -64,14 +64,14 @@ function FrameList() {
 
       setAddressing();
     } else if (baris > 1) {
-      check_array();
+      await check_array();
       console.log("baris 2 dst");
     } else {
       console.log("baris error");
     }
   }
 
-  const check_array = async () => {
+  async function check_array() {
     const isFound = inputarr.some((element) => {
       if (element.kode_frame === kode_frame) {
         return true;
@@ -80,21 +80,36 @@ function FrameList() {
       return false;
     });
 
-    if (isFound === true) {
-      alert("FRAME SUDAH DI SCAN!!");
-    } else {
+    if (isFound === false) {
       console.log("ARRAY PASS");
       console.log(device_address_list[0], "lihat device_address_list array 0");
       console.log(device_address_list[1], "lihat device_address_list array 1");
-      setInputarr([...inputarr, { kode_frame }]);
+      await setInputarr([...inputarr, { kode_frame }]);
+      // await check_jumlah_frame();
+      console.log(inputarr, " objek store di array atas");
+      setTimeout(
+        await function () {
+          check_jumlah_frame();
+        },
+        500
+      );
+    } else {
+      alert("FRAME SUDAH DI SCAN!!");
     }
-  };
+  }
 
   const setAddressing = async () => {
     try {
       const payload = {
         addr: 1,
       };
+
+      const element_frame = document.getElementById("kode_frame");
+      const element_loading = document.getElementById("loading_div");
+
+      // ✅ Set disabled / hiden attribute
+      element_frame.setAttribute("disabled", "");
+      element_loading.style.display = "block";
 
       const res = await instanceBackEnd.post(`setAddressing`, payload);
       addressing_loop = 0;
@@ -117,15 +132,12 @@ function FrameList() {
     const element_frame = document.getElementById("kode_frame");
     const element_loading = document.getElementById("loading_div");
 
-    // ✅ Set disabled / hiden attribute
-    element_frame.setAttribute("disabled", "");
-    element_loading.style.display = "block";
-
     console.log("masuk getAddressing ");
     const res = await instanceBackEnd.get(`getAddressing`);
 
     set_status = res.data.data.status;
     num_of_device = res.data.data.num_of_device;
+
     device_address_list = res.data.data.device_address_list;
 
     console.log(`set_status = ${set_status}`);
@@ -143,16 +155,38 @@ function FrameList() {
 
       element_frame.removeAttribute("disabled");
       element_loading.style.display = "none";
+      setTimeout(
+        await function () {
+          check_jumlah_frame();
+        },
+        500
+      );
       // setFrame();
     } else {
       alert("Get ADDRESSING FAILED!!!");
     }
   };
 
+  async function check_jumlah_frame() {
+    console.log("baris = " + baris);
+    console.log("jumlah frame= " + num_of_device);
+    document.getElementById("kode_frame").value = "";
+    document.getElementById("kode_frame").focus();
+    if (baris === num_of_device) {
+      console.log("Jumlah frame sesuai jumlah scan");
+      const panjang_array = inputarr.length;
+      console.log("panjang aray atas = " + panjang_array);
+      document.getElementById("save_button").click();
+    } else {
+      console.log("Lanjut scan" + baris);
+    }
+  }
+
   async function save_frame() {
     console.log(inputarr, " objek store di array ");
 
     const panjang_array = inputarr.length;
+    console.log("panjang aray = " + panjang_array);
 
     for (let i = 0; i < inputarr.length; i++) {
       const input_value = inputarr[i];
@@ -257,13 +291,19 @@ function FrameList() {
       const res = await instanceBackEnd.post("createMframe", payload);
 
       const data = await res.data;
-      const status = await res.status;
+      // const status = await res.status;
       const msg = await res.data.msg;
 
       console.log(data);
       console.log("msg = " + msg);
       if (msg === "Created") {
         console.log("Mframe Created");
+        setTimeout(
+          await function () {
+            getStatusCharging(input_value);
+          },
+          10000
+        );
       } else {
         alert("CREATE MFRAME GAGAL");
       }
@@ -272,10 +312,45 @@ function FrameList() {
     }
   };
 
+  const getStatusCharging = async (input_value) => {
+    try {
+      const payload = {
+        frame_sn: input_value.kode_frame,
+      };
+
+      const res = await instanceBackEnd.post("getMframByFrame", payload);
+      const status_checking = await res.data.data.status_checking;
+      const data_frame_sn = await res.data.data.frame_sn;
+
+      //   console.log(data.data.kd_site);
+      console.log(status_checking, "status_checking");
+
+      if (status_checking === true) {
+        console.log("PROSES CHARGING SELESAI" + data_frame_sn);
+      } else {
+        console.log("PROSES CHARGING BERJALAN" + data_frame_sn);
+        setTimeout(
+          await function () {
+            getStatusCharging(input_value);
+          },
+          10000
+        );
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <div>
       <div className="columns mt-5 is-centered">
         <div className="column is-half">
+          <label
+            className="label"
+            style={{ textAlign: "center", fontSize: "30px" }}
+          >
+            Battery Charging
+          </label>
           <div className="field">
             <label className="label">Kode Frame</label>
             <div className="control">
@@ -311,14 +386,18 @@ function FrameList() {
           </div>
 
           <div className="field">
-            <button
+            {/* <button
               id="addFrame"
               onClick={addFrame}
               className="button is-success"
             >
               Add Frame
-            </button>
-            <button onClick={save_frame} className="button is-success">
+            </button> */}
+            <button
+              id="save_button"
+              onClick={save_frame}
+              className="button is-success"
+            >
               Save Frame
             </button>
           </div>
