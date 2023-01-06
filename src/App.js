@@ -5,6 +5,7 @@ import EditMasterFrame from "./components/EditMasterFrame";
 import ScanFrame from "./components/ScanFrame";
 import ScanFrame2 from "./components/ScanFrame2";
 import Test from "./components/Test";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 function App() {
   return (

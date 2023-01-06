@@ -1,13 +1,20 @@
 import React, { useState } from "react";
 import { instanceBackEnd } from "../api/axios.js";
+import Spinner from "react-bootstrap/Spinner";
 
 var baris = 0;
+var check_selesai = 0;
 var addressing_loop;
 var set_address_stats;
 var num_of_device;
 var device_address_list;
 var set_status;
 var status_setFrame;
+var element_frame;
+var element_loading;
+var loading_charging;
+var div_selesai;
+
 function FrameList() {
   const [inputdata, SetInputdata] = useState({
     kode_frame: "",
@@ -104,8 +111,10 @@ function FrameList() {
         addr: 1,
       };
 
-      const element_frame = document.getElementById("kode_frame");
-      const element_loading = document.getElementById("loading_div");
+      element_frame = document.getElementById("kode_frame");
+      element_loading = document.getElementById("loading_address");
+      loading_charging = document.getElementById("loading_charging");
+      div_selesai = document.getElementById("div_selesai");
 
       // ✅ Set disabled / hiden attribute
       element_frame.setAttribute("disabled", "");
@@ -129,9 +138,6 @@ function FrameList() {
   };
 
   const getAddressing = async () => {
-    const element_frame = document.getElementById("kode_frame");
-    const element_loading = document.getElementById("loading_div");
-
     console.log("masuk getAddressing ");
     const res = await instanceBackEnd.get(`getAddressing`);
 
@@ -152,7 +158,7 @@ function FrameList() {
       }, 1000);
     } else if (set_status === 1 && addressing_loop < 31 && num_of_device > 0) {
       console.log("STOP LOOP go to nextstep, Loop =" + addressing_loop);
-
+      document.getElementById("kode_frame").value = "";
       element_frame.removeAttribute("disabled");
       element_loading.style.display = "none";
       setTimeout(
@@ -170,7 +176,7 @@ function FrameList() {
   async function check_jumlah_frame() {
     console.log("baris = " + baris);
     console.log("jumlah frame= " + num_of_device);
-    document.getElementById("kode_frame").value = "";
+
     document.getElementById("kode_frame").focus();
     if (baris === num_of_device) {
       console.log("Jumlah frame sesuai jumlah scan");
@@ -183,8 +189,10 @@ function FrameList() {
   }
 
   async function save_frame() {
-    console.log(inputarr, " objek store di array ");
+    element_frame.setAttribute("disabled", "");
+    loading_charging.style.display = "block";
 
+    console.log(inputarr, " objek store di array ");
     const panjang_array = inputarr.length;
     console.log("panjang aray = " + panjang_array);
 
@@ -326,14 +334,29 @@ function FrameList() {
       console.log(status_checking, "status_checking");
 
       if (status_checking === true) {
-        console.log("PROSES CHARGING SELESAI" + data_frame_sn);
+        console.log("PROSES CHARGING SELESAI 1" + data_frame_sn);
+        check_selesai = check_selesai + 1;
+
+        if (check_selesai === num_of_device) {
+          console.log("PROSES CHARGING SELESAI");
+          loading_charging.style.display = "none";
+          div_selesai.style.display = "block";
+          setTimeout(
+            await function () {
+              window.location.reload(true);
+            },
+            5000
+          );
+        } else {
+          console.log("Lanjut Charge");
+        }
       } else {
         console.log("PROSES CHARGING BERJALAN" + data_frame_sn);
         setTimeout(
           await function () {
             getStatusCharging(input_value);
           },
-          10000
+          5000
         );
       }
     } catch (error) {
@@ -352,7 +375,7 @@ function FrameList() {
             Battery Charging
           </label>
           <div className="field">
-            <label className="label">Kode Frame</label>
+            <label className="label">Frame Code</label>
             <div className="control">
               <input
                 id="kode_frame"
@@ -379,9 +402,25 @@ function FrameList() {
           </div>
 
           <div className="field">
-            <div style={{ display: "none" }} id="loading_div">
-              <p className="loader"></p>
-              {/* <p>LOADING</p> */}
+            <div style={{ display: "none" }} id="loading_address">
+              <Spinner
+                as="span"
+                animation="grow"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+              Loading...
+            </div>
+            <div style={{ display: "none" }} id="loading_charging">
+              <Spinner
+                as="span"
+                animation="grow"
+                size="sm"
+                role="status"
+                aria-hidden="true"
+              />
+              Charging Sedang Berjalan...
             </div>
           </div>
 
@@ -395,12 +434,23 @@ function FrameList() {
             </button> */}
             <button
               id="save_button"
+              style={{ display: "none" }}
               onClick={save_frame}
               className="button is-success"
             >
               Save Frame
             </button>
           </div>
+        </div>
+      </div>
+      <div className="columns mt-5 is-centered">
+        <div style={{ display: "none" }} id="div_selesai">
+          <label
+            className="label"
+            style={{ textAlign: "center", fontSize: "30px" }}
+          >
+            Proses Charging Selesai
+          </label>
         </div>
       </div>
 
