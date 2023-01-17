@@ -29,8 +29,8 @@ const MasterFrameList = () => {
   return (
     <div className="columns mt-5 is-centered">
       <div className="column is-half">
-        <h1>Lorem ipsum dolor sit amet. HEEELLPPP</h1>
-        <Link to={"add"} className="button is-success">
+        {/* <h1>Lorem ipsum dolor sit amet. HEEELLPPP</h1> */}
+        <Link to={"test"} className="button is-success">
           ADD NEW
         </Link>
         <table className="table is-striped is-fullwidth">
